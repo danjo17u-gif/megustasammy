@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Galaxia Suprema 3D Romántica 💜✨</title>
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+}
+canvas{ display:block; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<script>
+const canvas = document.getElementById("scene");
+const ctx = canvas.getContext("2d");
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let width = canvas.width;
+let height = canvas.height;
+
+let camera = { distance:1400, rotationX:0, rotationY:0 };
+let mouse = { down:false };
+
+// CONTROL 3D
+canvas.addEventListener("mousedown",()=>mouse.down=true);
+canvas.addEventListener("mouseup",()=>mouse.down=false);
+canvas.addEventListener("mousemove",(e)=>{
+    if(mouse.down){
+        camera.rotationY+=e.movementX*0.004;
+        camera.rotationX+=e.movementY*0.004;
+    }
+});
+canvas.addEventListener("wheel",(e)=>{
+    camera.distance+=e.deltaY*0.6;
+    if(camera.distance<500) camera.distance=500;
+    if(camera.distance>5000) camera.distance=5000;
+});
+
+function project(x,y,z){
+    let cosY=Math.cos(camera.rotationY);
+    let sinY=Math.sin(camera.rotationY);
+    let dx=cosY*x-sinY*z;
+    let dz=sinY*x+cosY*z;
+
+    let cosX=Math.cos(camera.rotationX);
+    let sinX=Math.sin(camera.rotationX);
+    let dy=cosX*y-sinX*dz;
+    dz=sinX*y+cosX*dz;
+
+    let scale=camera.distance/(camera.distance+dz);
+    return {x:dx*scale+width/2,y:dy*scale+height/2,scale};
+}
+
+// FRASES INTERCALADAS
+const frasesBase=[
+"Te amo","Me gustas","Te quiero mucho",
+"Me encanta tu risa","Tus ojos me iluminan",
+"Quiero abrazarte","Puedo darte un beso jshs"
+];
+
+let frases=[];
+for(let i=0;i<frasesBase.length;i++){
+    frases.push(frasesBase[i] + (i%2===0?" mi Ammy":" mi Nemy"));
+}
+
+// ESTRELLAS 3D
+let stars=[];
+for(let i=0;i<700;i++){
+    stars.push({
+        x:(Math.random()-0.5)*6000,
+        y:(Math.random()-0.5)*6000,
+        z:(Math.random()-0.5)*6000
+    });
+}
+
+// FRASES ORBITANDO
+let objects=[];
+let arms=3;
+for(let i=0;i<140;i++){
+    let arm=i%arms;
+    let angle=(i/50)*Math.PI+(arm*(Math.PI*2/arms));
+    let radius=400+Math.random()*900;
+    objects.push({
+        angle,
+        radius,
+        height:(Math.random()-0.5)*400,
+        speed:0.0004+Math.random()*0.0006,
+        text:frases[Math.floor(Math.random()*frases.length)]
+    });
+}
+
+// CONSTELACIÓN CORAZÓN 3D
+let heartConstellation=[];
+for(let t=0;t<Math.PI*2;t+=0.15){
+    let x=16*Math.pow(Math.sin(t),3);
+    let y=-(13*Math.cos(t)-5*Math.cos(2*t)-2*Math.cos(3*t)-Math.cos(4*t));
+    heartConstellation.push({
+        x:x*40,
+        y:y*40,
+        z:-800
+    });
+}
+
+// PÉTALOS
+let petals=[];
+for(let i=0;i<80;i++){
+    petals.push({
+        x:(Math.random()-0.5)*3000,
+        y:(Math.random()-0.5)*3000,
+        z:(Math.random()-0.5)*3000,
+        speed:1+Math.random()*2
+    });
+}
+
+// CORAZONES
+let hearts=[];
+for(let i=0;i<40;i++){
+    hearts.push({
+        x:(Math.random()-0.5)*3000,
+        y:(Math.random()-0.5)*3000,
+        z:(Math.random()-0.5)*3000,
+        drift:0.5+Math.random()
+    });
+}
+
+let pulse=0;
+
+function draw(){
+    ctx.fillStyle="rgba(10,0,20,0.35)";
+    ctx.fillRect(0,0,width,height);
+
+    // Estrellas
+    for(let s of stars){
+        let p=project(s.x,s.y,s.z);
+        ctx.fillStyle="white";
+        ctx.fillRect(p.x,p.y,2*p.scale,2*p.scale);
+    }
+
+    // Constelación corazón
+    ctx.fillStyle="#ff99cc";
+    for(let h of heartConstellation){
+        let p=project(h.x,h.y,h.z);
+        ctx.beginPath();
+        ctx.arc(p.x,p.y,2*p.scale,0,Math.PI*2);
+        ctx.fill();
+    }
+
+    // Núcleo galaxia
+    let center=project(0,0,0);
+    let gradient=ctx.createRadialGradient(center.x,center.y,20,center.x,center.y,260*center.scale);
+    gradient.addColorStop(0,"#ffffff");
+    gradient.addColorStop(0.3,"#c084ff");
+    gradient.addColorStop(1,"#1a002a");
+    ctx.beginPath();
+    ctx.arc(center.x,center.y,260*center.scale,0,Math.PI*2);
+    ctx.fillStyle=gradient;
+    ctx.fill();
+
+    // MENSAJE CENTRAL BRILLO
+    pulse+=0.05;
+    ctx.textAlign="center";
+    ctx.shadowBlur=30+Math.sin(pulse)*15;
+    ctx.shadowColor="#ff66cc";
+    ctx.fillStyle="white";
+    ctx.font=(60*center.scale)+"px Arial";
+    ctx.fillText("Quiero ser tu compañero de vida",center.x,center.y);
+    ctx.shadowBlur=0;
+
+    // Frases orbitando
+    for(let obj of objects){
+        obj.angle+=obj.speed;
+        let x=Math.cos(obj.angle)*obj.radius;
+        let z=Math.sin(obj.angle)*obj.radius;
+        let y=obj.height;
+        let p=project(x,y,z);
+        ctx.font=(20*p.scale)+"px Arial";
+        ctx.fillStyle="white";
+        ctx.fillText(obj.text,p.x,p.y);
+    }
+
+    // Pétalos 3D
+    for(let ptl of petals){
+        ptl.y+=ptl.speed;
+        if(ptl.y>2000) ptl.y=-2000;
+        let p=project(ptl.x,ptl.y,ptl.z);
+        ctx.font=(30*p.scale)+"px Arial";
+        ctx.fillText("🌸",p.x,p.y);
+    }
+
+    // Corazones 3D
+    for(let h of hearts){
+        h.z+=h.drift;
+        if(h.z>2000) h.z=-2000;
+        let p=project(h.x,h.y,h.z);
+        ctx.font=(25*p.scale)+"px Arial";
+        ctx.fillText("💖",p.x,p.y);
+    }
+
+    requestAnimationFrame(draw);
+}
+
+draw();
+</script>
+</body>
+</html>
